@@ -2,7 +2,7 @@ import mediapipe as mp
 import cv2
 from hand_movement.metadata import Position
 import time
-
+import multiprocessing
 
 BaseOptions = mp.tasks.BaseOptions
 GestureRecognizer = mp.tasks.vision.GestureRecognizer
@@ -10,7 +10,15 @@ GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 
+class HandState:
+    UNKNOWN = 0
+    FIST = 1
+
+
 class HandGestureDetector:
+
+    hand_state = HandState.UNKNOWN
+    consecutive_frames = 0
 
     __observers = []
     __move_observers = []
@@ -125,6 +133,9 @@ class HandGestureDetector:
             return True
         return False
 
+    # def _detectThreeFingerMove(self):
+    #     x = self.current_position[]
+
     def _detectForOpenPalm(self, frame) -> bool:
         options = GestureRecognizerOptions(
             min_hand_detection_confidence=0.5,
@@ -141,6 +152,25 @@ class HandGestureDetector:
                     return True
 
         return False
+
+    MIN_DETECTION_CONFIDENCE = 0.5
+    FIST_CONFIDENCE_THRESHOLD = 0.9
+    CONSECUTIVE_FRAMES_THRESHOLD = 2
+
+    def _is_fist(self, hand_landmarks):
+        # Get the landmarks for the fingers (Indices 4-8 for each finger)
+        fingertips = [hand_landmarks.landmark[mp.solutions.hands.HandLandmark(
+            index)] for index in range(4, 21)]
+
+        # Check if the distance between the base of the palm and fingertips is smaller than a threshold
+        for fingertip in fingertips:
+            distance = abs(fingertip.x - hand_landmarks.landmark[mp.solutions.hands.HandLandmark.WRIST].x) + \
+                abs(fingertip.y -
+                    hand_landmarks.landmark[mp.solutions.hands.HandLandmark.WRIST].y)
+            if distance > 0.4:
+                return False
+
+        return True
 
     def detect(self, frame):
         results = self.hands.process(frame)
@@ -160,11 +190,9 @@ class HandGestureDetector:
 
         if self.previous_position and self.current_position:
             if self.previous_position.__len__() > 0 and self.current_position.__len__() > 0:
-
-                self._detectForTap() if not self._detectForMove() else None
+                self._detectForTap() if not self._detectForMove() else self._is_fist(hand_landmarks)
 
         # Displaying FPS
-
         if self.showFPS:
             self._ctime = time.time()
             fps = 1/(self._ctime - self._ptime)

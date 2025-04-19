@@ -2,8 +2,6 @@ import subprocess
 import pyautogui
 from hand_movement.metadata import Position
 
-pyautogui.FAILSAFE = False
-
 
 class Controller:
 
@@ -28,14 +26,14 @@ class Controller:
         return self.__launchpad_state
 
     def open_launchpad(self):
-        output = subprocess.check_output(["open",  "-a", "Launchpad"])
-        print(output)
-        self.__launchpad_state = True
+        if not self.__launchpad_state:
+            output = subprocess.check_output(["open", "-a", "Launchpad"])
+            self.__launchpad_state = True
         return self.__launchpad_state
 
     def close_launchpad(self):
+        pyautogui.press("esc")
         if self.__launchpad_state:
-            pyautogui.press("esc")
             self.__launchpad_state = False
         return self.__launchpad_state
 
@@ -50,6 +48,12 @@ class Controller:
                 pyautogui.press("right")
                 done = True
         return done
+
+    def change_to_left(self):
+        pyautogui.hotkey('ctrl', 'left')
+
+    def change_to_right(self):
+        pyautogui.hotkey('ctrl', 'right')
 
     def leftKey(self):
         pyautogui.press("left")

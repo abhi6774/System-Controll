@@ -29,12 +29,14 @@ detector.setOnTap(onTap)
 
 frame_counts = 0
 if __name__ == "__main__":
+
+    processes = []
     while True:
         ret, frame = cap.read()
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.flip(frame, 1)
-        # if frame_counts % 5 == 0:
+
         frame = detector.detect(frame)
 
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
